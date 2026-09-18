@@ -51,13 +51,20 @@ export const Header: React.FC<HeaderProps> = ({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Lock body scroll when mobile menu is active
+  // Lock body scroll when mobile menu is active with multi-platform touch safety
   useEffect(() => {
     if (isMobileMenuOpen) {
-      const originalStyle = window.getComputedStyle(document.body).overflow;
+      const originalOverflow = document.body.style.overflow;
+      const originalPosition = document.body.style.position;
+      const originalWidth = document.body.style.width;
+
       document.body.style.overflow = 'hidden';
+      document.body.style.width = '100%';
+
       return () => {
-        document.body.style.overflow = originalStyle;
+        document.body.style.overflow = originalOverflow;
+        document.body.style.position = originalPosition;
+        document.body.style.width = originalWidth;
       };
     }
   }, [isMobileMenuOpen]);
@@ -293,18 +300,28 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </motion.button>
 
-            {/* Mobile Menu Toggle */}
+            {/* Mobile Menu Toggle with Smooth Morphing Icon */}
             <motion.button
-              whileTap={{ scale: 0.92 }}
+              whileTap={{ scale: 0.9 }}
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label={isMobileMenuOpen ? 'بستن منو' : 'باز کردن منوی ناوبری'}
-              className="lg:hidden p-2.5 min-w-[42px] min-h-[42px] rounded-2xl bg-slate-100 hover:bg-amber-100/70 border border-slate-200 text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+              className="lg:hidden relative w-11 h-11 rounded-2xl bg-slate-100 hover:bg-amber-100/80 active:bg-amber-100 border border-slate-200/90 text-slate-800 flex flex-col items-center justify-center gap-1.5 transition-colors cursor-pointer select-none touch-manipulation z-10"
             >
-              {isMobileMenuOpen ? (
-                <X className="w-5 h-5 text-slate-900" />
-              ) : (
-                <Menu className="w-5 h-5 text-slate-900" />
-              )}
+              <motion.span
+                animate={isMobileMenuOpen ? { rotate: 45, y: 7.5, backgroundColor: '#0f172a' } : { rotate: 0, y: 0, backgroundColor: '#0f172a' }}
+                transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                className="w-5 h-[2.5px] rounded-full origin-center"
+              />
+              <motion.span
+                animate={isMobileMenuOpen ? { opacity: 0, scaleX: 0 } : { opacity: 1, scaleX: 1, backgroundColor: '#0f172a' }}
+                transition={{ duration: 0.15 }}
+                className="w-3.5 h-[2.5px] rounded-full self-start mr-3 origin-right"
+              />
+              <motion.span
+                animate={isMobileMenuOpen ? { rotate: -45, y: -7.5, backgroundColor: '#0f172a' } : { rotate: 0, y: 0, backgroundColor: '#0f172a' }}
+                transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                className="w-5 h-[2.5px] rounded-full origin-center"
+              />
             </motion.button>
 
           </div>
@@ -426,27 +443,46 @@ export const Header: React.FC<HeaderProps> = ({
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {isMobileMenuOpen && (
-            <div className="fixed inset-0 z-50 overflow-hidden font-['Vazirmatn',sans-serif]">
-              {/* Tap to close backdrop */}
+            <div className="fixed inset-0 z-50 overflow-hidden font-['Vazirmatn',sans-serif] select-none">
+              {/* Tap to close backdrop with optimized performance */}
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.22 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="fixed inset-0 bg-slate-950/65 backdrop-blur-xs"
+                className="fixed inset-0 bg-slate-950/60 backdrop-blur-[2px] touch-none"
               />
 
-              {/* Drawer Container: firmly anchored to the right side (RTL start) */}
+              {/* Drawer Container: firmly anchored to the right side (RTL start) with 60/120fps spring physics and swipe gesture */}
               <motion.div 
                 initial={{ x: '100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
-                transition={{ type: "spring", damping: 28, stiffness: 280 }}
-                className="fixed top-0 bottom-0 right-0 w-[86%] max-w-sm bg-white h-full shadow-2xl flex flex-col z-50 text-right overflow-hidden"
+                transition={{ 
+                  type: "spring", 
+                  damping: 30, 
+                  stiffness: 320, 
+                  mass: 0.8
+                }}
+                drag="x"
+                dragDirectionLock
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={{ left: 0, right: 0.65 }}
+                onDragEnd={(_, info) => {
+                  if (info.offset.x > 80 || info.velocity.x > 300) {
+                    setIsMobileMenuOpen(false);
+                  }
+                }}
+                style={{ willChange: 'transform' }}
+                onClick={(e) => e.stopPropagation()}
+                className="fixed top-0 bottom-0 right-0 w-[86%] max-w-sm bg-white h-full shadow-2xl flex flex-col z-50 text-right overflow-hidden transform-gpu touch-manipulation"
               >
+                {/* Visual drag/swipe indicator pill on left edge */}
+                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 w-1.5 h-12 rounded-full bg-slate-300/80 pointer-events-none" />
+
                 {/* Header */}
-                <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/90">
                   <div className="flex items-center gap-2.5">
                     <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-slate-950 shadow-md shadow-amber-500/20">
                       <Flame className="w-5 h-5 fill-slate-950 stroke-none" />
@@ -465,57 +501,75 @@ export const Header: React.FC<HeaderProps> = ({
                   <button
                     onClick={() => setIsMobileMenuOpen(false)}
                     aria-label="بستن منو"
-                    className="w-10 h-10 rounded-2xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+                    className="w-10 h-10 rounded-2xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 active:scale-95 flex items-center justify-center transition-all cursor-pointer shadow-2xs touch-manipulation"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                {/* Quick Action Buttons (Cart & Wishlist) */}
-                <div className="grid grid-cols-2 gap-2 p-3 bg-slate-100/70 border-b border-slate-200/80">
-                  <button
+                {/* Quick Action Buttons (Cart & Wishlist) with touch-optimized targets */}
+                <div className="grid grid-cols-2 gap-2.5 p-3 bg-slate-100/70 border-b border-slate-200/80">
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => {
                       setIsMobileMenuOpen(false);
                       onOpenCart();
                     }}
-                    className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-500 text-slate-950 font-black text-xs shadow-xs cursor-pointer active:scale-95 transition-transform"
+                    className="flex items-center justify-center gap-2 py-2.5 px-3 min-h-[44px] rounded-xl bg-amber-500 text-slate-950 font-black text-xs shadow-xs cursor-pointer touch-manipulation"
                   >
                     <ShoppingBag className="w-4 h-4" />
                     <span>سبد خرید ({cartCount})</span>
-                  </button>
+                  </motion.button>
 
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => {
                       setIsMobileMenuOpen(false);
                       onOpenWishlist();
                     }}
-                    className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white border border-slate-200 text-slate-800 font-bold text-xs shadow-2xs cursor-pointer active:scale-95 transition-transform"
+                    className="flex items-center justify-center gap-2 py-2.5 px-3 min-h-[44px] rounded-xl bg-white border border-slate-200 text-slate-800 font-bold text-xs shadow-2xs cursor-pointer touch-manipulation"
                   >
                     <Heart className="w-4 h-4 text-rose-500" />
                     <span>علاقه‌مندی ({favoritesCount})</span>
-                  </button>
+                  </motion.button>
                 </div>
 
-                {/* Scrollable Content Body */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-5">
-                  {/* Navigation Pages */}
+                {/* Scrollable Content Body with overscroll-contain & touch-pan-y */}
+                <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y p-4 space-y-5">
+                  {/* Navigation Pages with Staggered Entrance */}
                   <div>
                     <span className="text-[11px] font-black text-slate-400 block mb-2 px-1">صفحات و خدمات</span>
-                    <div className="space-y-1">
+                    <motion.div 
+                      initial="hidden"
+                      animate="visible"
+                      variants={{
+                        hidden: { opacity: 0 },
+                        visible: {
+                          opacity: 1,
+                          transition: { staggerChildren: 0.035, delayChildren: 0.05 }
+                        }
+                      }}
+                      className="space-y-1"
+                    >
                       {navLinks.map((link) => {
                         const isActive = activePage === link.id;
                         return (
-                          <button
+                          <motion.button
                             key={link.id}
+                            variants={{
+                              hidden: { opacity: 0, x: 18 },
+                              visible: { opacity: 1, x: 0, transition: { type: "spring", damping: 25, stiffness: 350 } }
+                            }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={() => {
                               onNavigate(link.id);
                               setIsMobileMenuOpen(false);
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                             }}
-                            className={`w-full flex items-center gap-3 p-3 rounded-2xl text-xs font-bold transition-all text-right cursor-pointer ${
+                            className={`w-full flex items-center gap-3 p-3 min-h-[46px] rounded-2xl text-xs font-bold transition-all text-right cursor-pointer touch-manipulation ${
                               isActive
                                 ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
-                                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                                : 'text-slate-700 hover:bg-slate-100 active:bg-slate-100 hover:text-slate-900'
                             }`}
                           >
                             <span className="w-5 h-5 flex items-center justify-center">{link.icon}</span>
@@ -526,10 +580,10 @@ export const Header: React.FC<HeaderProps> = ({
                               </span>
                             )}
                             <ChevronLeft className={`w-4 h-4 ${isActive ? 'text-slate-950' : 'text-slate-400'}`} />
-                          </button>
+                          </motion.button>
                         );
                       })}
-                    </div>
+                    </motion.div>
                   </div>
 
                   {/* Quick Categories Section */}
@@ -537,8 +591,9 @@ export const Header: React.FC<HeaderProps> = ({
                     <span className="text-[11px] font-black text-slate-400 block mb-2 px-1">دسته‌بندی‌های تخصصی</span>
                     <div className="grid grid-cols-1 gap-1">
                       {CATEGORIES.filter(c => c.id !== 'all').map((cat) => (
-                        <button
+                        <motion.button
                           key={cat.id}
+                          whileTap={{ scale: 0.98 }}
                           onClick={() => {
                             if (onSelectCategory) {
                               onSelectCategory(cat.id);
@@ -548,14 +603,14 @@ export const Header: React.FC<HeaderProps> = ({
                             setIsMobileMenuOpen(false);
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
-                          className="w-full flex items-center justify-between p-2.5 rounded-xl text-xs text-slate-700 hover:bg-amber-50 hover:text-amber-900 font-semibold transition-colors cursor-pointer text-right"
+                          className="w-full flex items-center justify-between p-2.5 min-h-[44px] rounded-xl text-xs text-slate-700 hover:bg-amber-50 active:bg-amber-100 hover:text-amber-900 font-semibold transition-colors cursor-pointer text-right touch-manipulation"
                         >
                           <span className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-amber-400" />
                             <span>{cat.label}</span>
                           </span>
                           <ChevronLeft className="w-3.5 h-3.5 text-slate-400" />
-                        </button>
+                        </motion.button>
                       ))}
                     </div>
                   </div>
@@ -587,7 +642,7 @@ export const Header: React.FC<HeaderProps> = ({
 
                 </div>
 
-                {/* Drawer Footer */}
+                {/* Drawer Footer with safe padding */}
                 <div className="p-4 border-t border-slate-100 bg-slate-50 text-center">
                   <p className="text-[11px] text-slate-500 font-medium">ارسال ۲ ساعته در تهران • تحویل پیشتاز سراسر کشور</p>
                 </div>
