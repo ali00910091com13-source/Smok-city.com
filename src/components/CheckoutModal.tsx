@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CartItem } from '../types';
+import { CartItem, TrackingOrder, CouponItem } from '../types';
 import { formatPrice } from '../data/products';
 import { 
   X, 
@@ -23,8 +23,9 @@ interface CheckoutModalProps {
   onClose: () => void;
   cartItems: CartItem[];
   cartTotal: number;
-  onOrderCompleted: (orderId: string) => void;
+  onOrderCompleted: (orderId: string, orderData?: TrackingOrder) => void;
   onNavigateTracking: (orderId: string) => void;
+  coupons?: CouponItem[];
 }
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
@@ -33,7 +34,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   cartItems,
   cartTotal,
   onOrderCompleted,
-  onNavigateTracking
+  onNavigateTracking,
+  coupons
 }) => {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -56,6 +58,25 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handleApplyCoupon = () => {
     const code = couponCode.trim().toUpperCase();
+    
+    // Check against custom coupons from admin first if provided
+    if (coupons && coupons.length > 0) {
+      const foundCoupon = coupons.find(c => c.code.toUpperCase() === code && c.active);
+      if (foundCoupon) {
+        let disc = 0;
+        if (foundCoupon.discountType === 'percent') {
+          disc = Math.round((cartTotal * foundCoupon.discountValue) / 100);
+        } else if (foundCoupon.discountType === 'fixed') {
+          disc = foundCoupon.discountValue;
+        } else if (foundCoupon.discountType === 'free_shipping') {
+          disc = shippingCost;
+        }
+        setAppliedDiscount(disc);
+        setCouponMessage({ text: `کوپن «${foundCoupon.title}» (${formatPrice(disc)}) اعمال شد!`, success: true });
+        return;
+      }
+    }
+
     if (code === 'SMOKE10') {
       const disc = Math.round(cartTotal * 0.1);
       setAppliedDiscount(disc);
@@ -79,8 +100,35 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     const orderNumber = 'SMC-' + Math.floor(1000 + Math.random() * 9000);
     setGeneratedOrderId(orderNumber);
+
+    const newOrderData: TrackingOrder = {
+      orderId: orderNumber,
+      customerName: fullName.trim(),
+      phone: phone.trim(),
+      date: 'امروز، ساعت ' + new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }),
+      status: 'processing',
+      statusText: 'سفارش با موفقیت ثبت شد و در صف صدور فاکتور و تایید اصالت است',
+      courier: deliveryMethod === 'express' ? 'سفیر اختصاصی پیک تهران' : 'پست پیشتاز هوایی سراسری',
+      courierPhone: deliveryMethod === 'express' ? '021-88223344' : '193',
+      shippingAddress: `${province}، ${city}، ${address.trim()}`,
+      totalAmount: finalPayable,
+      items: cartItems.map(item => ({
+        productName: item.product.name,
+        quantity: item.quantity,
+        price: item.product.price + (item.withAddon ? 464000 : 0),
+        color: item.product.colors?.find(c => c.id === item.selectedColor)?.name
+      })),
+      steps: [
+        { title: 'ثبت سفارش و پرداخت اینترنتی', desc: 'تراکنش با موفقیت تایید شد', completed: true, current: false },
+        { title: 'بررسی اصالت و صدور فاکتور', desc: 'کارت طلایی گارانتی الحاق گردید', completed: true, current: true },
+        { title: 'بسته‌بندی ضربه‌گیر انبار مرکزی', desc: 'آماده‌سازی بسته وکیوم پلمپ', completed: false, current: false },
+        { title: 'تحویل به ناوگان حمل و نقل', desc: 'در انتظار اعزام سفیر', completed: false, current: false },
+        { title: 'تحویل نهایی به خریدار محترم', desc: 'تحویل حضوری با امضا', completed: false, current: false }
+      ]
+    };
+
     setIsCompleted(true);
-    onOrderCompleted(orderNumber);
+    onOrderCompleted(orderNumber, newOrderData);
   };
 
   return (

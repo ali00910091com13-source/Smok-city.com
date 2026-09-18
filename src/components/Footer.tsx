@@ -10,16 +10,18 @@ import {
   Instagram, 
   MessageCircle,
   Sparkles,
-  CheckCircle2
+  CheckCircle2,
+  Lock
 } from 'lucide-react';
 import { PageType } from '../types';
 import { SmokeCityLogo } from './SmokeCityLogo';
 
 interface FooterProps {
   onNavigate?: (page: PageType) => void;
+  onOpenAdminModal?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
+export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenAdminModal }) => {
   const [newsInput, setNewsInput] = useState('');
   const [newsJoined, setNewsJoined] = useState(false);
 
@@ -219,6 +221,20 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <span>نماد اعتماد الکترونیکی</span>
             <span>•</span>
             <span>سیستم استعلام اصالت آنلاین</span>
+            {onOpenAdminModal && (
+              <>
+                <span>•</span>
+                <button
+                  type="button"
+                  onClick={onOpenAdminModal}
+                  className="text-slate-400 hover:text-amber-600 transition-colors cursor-pointer flex items-center gap-1 group text-[11px]"
+                  title="ورود به پنل مدیریت مخفی (میانبر Alt+A)"
+                >
+                  <Lock className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100" />
+                  <span className="opacity-70 group-hover:opacity-100">پنل مدیریت</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
 

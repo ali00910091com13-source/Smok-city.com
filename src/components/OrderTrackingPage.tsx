@@ -16,9 +16,14 @@ import { SAMPLE_TRACKING_ORDERS } from '../data/extraData';
 import { TrackingOrder } from '../types';
 import { formatPrice } from '../data/products';
 
-export const OrderTrackingPage: React.FC = () => {
-  const [orderInput, setOrderInput] = useState('SMC-9941');
-  const [currentOrder, setCurrentOrder] = useState<TrackingOrder | null>(SAMPLE_TRACKING_ORDERS['SMC-9941']);
+interface OrderTrackingPageProps {
+  orders?: Record<string, TrackingOrder>;
+}
+
+export const OrderTrackingPage: React.FC<OrderTrackingPageProps> = ({ orders = SAMPLE_TRACKING_ORDERS }) => {
+  const initialOrderId = Object.keys(orders)[0] || 'SMC-9941';
+  const [orderInput, setOrderInput] = useState(initialOrderId);
+  const [currentOrder, setCurrentOrder] = useState<TrackingOrder | null>(orders[initialOrderId] || SAMPLE_TRACKING_ORDERS['SMC-9941']);
   const [hasSearched, setHasSearched] = useState(true);
 
   const handleSearch = (codeToSearch?: string) => {
@@ -26,7 +31,9 @@ export const OrderTrackingPage: React.FC = () => {
     if (!code) return;
 
     setHasSearched(true);
-    if (SAMPLE_TRACKING_ORDERS[code]) {
+    if (orders[code]) {
+      setCurrentOrder(orders[code]);
+    } else if (SAMPLE_TRACKING_ORDERS[code]) {
       setCurrentOrder(SAMPLE_TRACKING_ORDERS[code]);
     } else {
       // Create a dynamic realistic in-transit order for any custom code
@@ -101,28 +108,23 @@ export const OrderTrackingPage: React.FC = () => {
           {/* Quick sample orders */}
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 pt-1">
             <span className="text-[11px] font-bold text-slate-400">سفارش‌های نمونه جهت بررسی:</span>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setOrderInput('SMC-9941');
-                handleSearch('SMC-9941');
-              }}
-              className="text-amber-700 hover:underline font-mono bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 font-bold cursor-pointer"
-            >
-              SMC-9941 (پیک اکسپرس تهران)
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setOrderInput('SMC-8820');
-                handleSearch('SMC-8820');
-              }}
-              className="text-slate-700 hover:underline font-mono bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 font-bold cursor-pointer"
-            >
-              SMC-8820 (پست پیشتاز اصفهان)
-            </motion.button>
+            {Object.keys(orders).slice(0, 3).map((codeKey) => {
+              const ord = orders[codeKey];
+              return (
+                <motion.button
+                  key={codeKey}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setOrderInput(codeKey);
+                    handleSearch(codeKey);
+                  }}
+                  className="text-amber-800 hover:underline font-mono bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 font-bold cursor-pointer text-xs"
+                >
+                  {codeKey} ({ord.customerName} - {ord.statusText ? ord.statusText.slice(0, 18) + '...' : ord.courier})
+                </motion.button>
+              );
+            })}
           </div>
         </div>
 

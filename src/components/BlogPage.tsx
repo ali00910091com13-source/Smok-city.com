@@ -14,7 +14,12 @@ import {
   Tag 
 } from 'lucide-react';
 
-export const BlogPage: React.FC = () => {
+interface BlogPageProps {
+  onSelectProduct?: (p: any) => void;
+  articles?: Article[];
+}
+
+export const BlogPage: React.FC<BlogPageProps> = ({ articles = ARTICLES }) => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [activeArticle, setActiveArticle] = useState<Article | null>(null);
 
@@ -26,8 +31,8 @@ export const BlogPage: React.FC = () => {
   ];
 
   const filteredArticles = selectedCategory === 'all'
-    ? ARTICLES
-    : ARTICLES.filter(a => a.category === selectedCategory);
+    ? articles
+    : articles.filter(a => a.category === selectedCategory);
 
   return (
     <div className="bg-slate-50 py-8 min-h-screen">

@@ -18,22 +18,44 @@ import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
 import { ProductAdvisorBot } from './components/ProductAdvisorBot';
 import { Footer } from './components/Footer';
-import { Product, CartItem, PageType } from './types';
+import { AdminPanel } from './components/AdminPanel';
+import { AdminLoginModal } from './components/AdminLoginModal';
+import { Product, CartItem, PageType, Article, TrackingOrder, FlashSaleConfig, CouponItem } from './types';
 import { PRODUCTS } from './data/products';
-import { CheckCircle2, ArrowUp } from 'lucide-react';
+import { CheckCircle2, ArrowUp, Shield } from 'lucide-react';
+import { 
+  getStoredProducts, 
+  getStoredArticles, 
+  getStoredOrders, 
+  getStoredFlashSaleConfig, 
+  getStoredCoupons,
+  isAdminLoggedIn,
+  saveStoredOrders
+} from './utils/adminStorage';
 
 export default function App() {
   const [activePage, setActivePage] = useState<PageType>(PageType.HOME);
-  const [selectedProduct, setSelectedProduct] = useState<Product>(PRODUCTS[0]);
+  
+  // Dynamic persistent states managed by Admin Panel
+  const [products, setProducts] = useState<Product[]>(getStoredProducts);
+  const [articles, setArticles] = useState<Article[]>(getStoredArticles);
+  const [orders, setOrders] = useState<Record<string, TrackingOrder>>(getStoredOrders);
+  const [flashConfig, setFlashConfig] = useState<FlashSaleConfig>(getStoredFlashSaleConfig);
+  const [coupons, setCoupons] = useState<CouponItem[]>(getStoredCoupons);
+
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isAdminLogged, setIsAdminLogged] = useState(isAdminLoggedIn);
+
+  const [selectedProduct, setSelectedProduct] = useState<Product>(() => products[0] || PRODUCTS[0]);
   const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
   
   // Pre-populate with sample product to let user experience cart immediately
   const [cartItems, setCartItems] = useState<CartItem[]>([
     {
-      product: PRODUCTS[0],
+      product: products[0] || PRODUCTS[0],
       quantity: 1,
-      selectedColor: PRODUCTS[0].colors[0]?.id,
-      selectedResistance: PRODUCTS[0].resistances?.[0]?.id,
+      selectedColor: (products[0] || PRODUCTS[0]).colors?.[0]?.id,
+      selectedResistance: (products[0] || PRODUCTS[0]).resistances?.[0]?.id,
       withAddon: false
     }
   ]);
@@ -43,6 +65,23 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // Secret keyboard shortcut (Alt+A) and hash (#admin) trigger for Admin access
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key === 'a' || e.key === 'A' || e.key === 'ش' || e.key === 'م')) {
+        e.preventDefault();
+        setIsAdminModalOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    if (window.location.hash === '#admin') {
+      setIsAdminModalOpen(true);
+    }
+
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Monitor scroll for back-to-top button with 60/120fps throttle
   useEffect(() => {
@@ -190,176 +229,253 @@ export default function App() {
         }}
       />
 
-      {/* Main Dynamic Viewport with Smooth Page Transitions */}
-      <main className="flex-1 overflow-x-hidden">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activePage}
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -14 }}
-            transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {activePage === PageType.HOME && (
-              <>
-                <HeroBanner
-                  onExploreClick={() => handleNavigate(PageType.DEALS)}
-                  onSelectFeatured={handleSelectProduct}
-                  featuredProduct={PRODUCTS[0]}
-                  onFilterCategory={(cat) => {
-                    setSelectedCategory(cat);
-                    handleNavigate(PageType.SHOP);
-                  }}
-                />
+      {/* Quick Admin floating badge when logged in */}
+      {isAdminLogged && activePage !== PageType.ADMIN && (
+        <motion.button
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => handleNavigate(PageType.ADMIN)}
+          className="fixed top-3 left-4 z-50 bg-slate-900/90 backdrop-blur-md text-amber-400 hover:text-white border border-amber-500/40 text-xs px-3.5 py-1.5 rounded-full shadow-xl flex items-center gap-1.5 cursor-pointer font-black"
+          title="ورود به پنل مدیریت"
+        >
+          <Shield className="w-3.5 h-3.5 text-amber-400" />
+          <span>پنل مدیریت</span>
+        </motion.button>
+      )}
 
-                <FlashSale
-                  products={PRODUCTS}
-                  onSelectProduct={handleSelectProduct}
-                  onAddToCart={(p) => handleAddToCart(p, 1)}
-                  favorites={favorites}
-                  onToggleFavorite={handleToggleFavorite}
-                />
+      {/* Main Dynamic Viewport */}
+      {activePage === PageType.ADMIN ? (
+        <AdminPanel
+          products={products}
+          onUpdateProducts={(newProducts) => {
+            setProducts(newProducts);
+            showToast('محصولات با موفقیت به‌روزرسانی شدند');
+          }}
+          articles={articles}
+          onUpdateArticles={(newArticles) => {
+            setArticles(newArticles);
+            showToast('مقالات با موفقیت به‌روزرسانی شدند');
+          }}
+          orders={orders}
+          onUpdateOrders={(newOrders) => {
+            setOrders(newOrders);
+            showToast('سفارش‌ها با موفقیت به‌روزرسانی شدند');
+          }}
+          flashConfig={flashConfig}
+          onUpdateFlashConfig={(newConfig) => {
+            setFlashConfig(newConfig);
+            showToast('تنظیمات حراج شگفت‌انگیز ذخیره شد');
+          }}
+          coupons={coupons}
+          onUpdateCoupons={(newCoupons) => {
+            setCoupons(newCoupons);
+            showToast('کدهای تخفیف با موفقیت ذخیره شدند');
+          }}
+          onBackToStore={() => handleNavigate(PageType.HOME)}
+        />
+      ) : (
+        <>
+          <main className="flex-1 overflow-x-hidden">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activePage}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -14 }}
+                transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+              >
+                {activePage === PageType.HOME && (
+                  <>
+                    <HeroBanner
+                      onExploreClick={() => handleNavigate(PageType.DEALS)}
+                      onSelectFeatured={handleSelectProduct}
+                      featuredProduct={products[0] || PRODUCTS[0]}
+                      onFilterCategory={(cat) => {
+                        setSelectedCategory(cat);
+                        handleNavigate(PageType.SHOP);
+                      }}
+                    />
 
-                <FeaturedProducts
-                  products={PRODUCTS}
-                  selectedCategory={selectedCategory}
-                  onSelectCategory={setSelectedCategory}
-                  onSelectProduct={handleSelectProduct}
-                  onAddToCart={(p) => handleAddToCart(p, 1)}
-                  favorites={favorites}
-                  onToggleFavorite={handleToggleFavorite}
-                  onNavigateShop={() => handleNavigate(PageType.SHOP)}
-                />
+                    <FlashSale
+                      products={products}
+                      onSelectProduct={handleSelectProduct}
+                      onAddToCart={(p) => handleAddToCart(p, 1)}
+                      favorites={favorites}
+                      onToggleFavorite={handleToggleFavorite}
+                      onViewAllDeals={() => handleNavigate(PageType.DEALS)}
+                      flashConfig={flashConfig}
+                    />
 
-                <TrustFeatures />
-                <FaqSection />
-              </>
+                    <FeaturedProducts
+                      products={products}
+                      selectedCategory={selectedCategory}
+                      onSelectCategory={setSelectedCategory}
+                      onSelectProduct={handleSelectProduct}
+                      onAddToCart={(p) => handleAddToCart(p, 1)}
+                      favorites={favorites}
+                      onToggleFavorite={handleToggleFavorite}
+                      onNavigateShop={() => handleNavigate(PageType.SHOP)}
+                    />
+
+                    <TrustFeatures />
+                    <FaqSection />
+                  </>
+                )}
+
+                {activePage === PageType.SHOP && (
+                  <ShopPage
+                    products={products}
+                    selectedCategory={selectedCategory}
+                    onSelectCategory={setSelectedCategory}
+                    onSelectProduct={handleSelectProduct}
+                    onAddToCart={(p) => handleAddToCart(p, 1)}
+                    favorites={favorites}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                )}
+
+                {activePage === PageType.DEALS && (
+                  <DealsPage
+                    products={products}
+                    onSelectProduct={handleSelectProduct}
+                    onAddToCart={(p) => handleAddToCart(p, 1)}
+                    favorites={favorites}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                )}
+
+                {activePage === PageType.AUTHENTICITY && (
+                  <AuthenticityPage />
+                )}
+
+                {activePage === PageType.TRACKING && (
+                  <OrderTrackingPage orders={orders} />
+                )}
+
+                {activePage === PageType.BLOG && (
+                  <BlogPage 
+                    articles={articles}
+                    onSelectProduct={handleSelectProduct} 
+                  />
+                )}
+
+                {activePage === PageType.WISHLIST && (
+                  <WishlistPage
+                    products={products}
+                    favorites={favorites}
+                    onToggleFavorite={handleToggleFavorite}
+                    onSelectProduct={handleSelectProduct}
+                    onAddToCart={(p) => handleAddToCart(p, 1)}
+                    onNavigateShop={() => handleNavigate(PageType.SHOP)}
+                  />
+                )}
+
+                {activePage === PageType.CONTACT && (
+                  <ContactPage />
+                )}
+
+                {activePage === PageType.PRODUCT_DETAIL && (
+                  <ProductDetailPage
+                    product={selectedProduct}
+                    onBack={() => handleNavigate(PageType.HOME)}
+                    onAddToCart={handleAddToCart}
+                    onSelectProduct={handleSelectProduct}
+                    favorites={favorites}
+                    onToggleFavorite={handleToggleFavorite}
+                    onOpenAdvisor={() => setIsAdvisorOpen(true)}
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </main>
+
+          {/* Cart Drawer */}
+          <CartDrawer
+            isOpen={isCartOpen}
+            onClose={() => setIsCartOpen(false)}
+            cartItems={cartItems}
+            onUpdateQuantity={handleUpdateQuantity}
+            onRemoveItem={handleRemoveItem}
+            onClearCart={handleClearCart}
+            onProceedCheckout={() => {
+              setIsCartOpen(false);
+              setIsCheckoutOpen(true);
+            }}
+          />
+
+          {/* Multi-Step Checkout Modal */}
+          <CheckoutModal
+            isOpen={isCheckoutOpen}
+            onClose={() => setIsCheckoutOpen(false)}
+            cartItems={cartItems}
+            cartTotal={cartTotal}
+            coupons={coupons}
+            onOrderCompleted={(orderId, orderData) => {
+              handleClearCart();
+              if (orderData) {
+                setOrders(prev => {
+                  const updated = { [orderId]: orderData, ...prev };
+                  saveStoredOrders(updated);
+                  return updated;
+                });
+              }
+              showToast(`سفارش شماره ${orderId} با موفقیت ثبت شد.`);
+            }}
+            onNavigateTracking={(orderId) => {
+              setIsCheckoutOpen(false);
+              handleNavigate(PageType.TRACKING);
+            }}
+          />
+
+          {/* Back to top floating button */}
+          <AnimatePresence>
+            {showScrollTop && !isAdvisorOpen && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.7, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.7, y: 15 }}
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.92 }}
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="fixed bottom-22 left-6 z-30 w-12 h-12 rounded-2xl bg-white/95 hover:bg-slate-100 text-slate-800 border border-slate-200 flex items-center justify-center shadow-xl transition-colors cursor-pointer"
+                title="رفتن به بالای صفحه"
+              >
+                <ArrowUp className="w-5 h-5" />
+              </motion.button>
             )}
+          </AnimatePresence>
 
-            {activePage === PageType.SHOP && (
-              <ShopPage
-                products={PRODUCTS}
-                selectedCategory={selectedCategory}
-                onSelectCategory={setSelectedCategory}
-                onSelectProduct={handleSelectProduct}
-                onAddToCart={(p) => handleAddToCart(p, 1)}
-                favorites={favorites}
-                onToggleFavorite={handleToggleFavorite}
-              />
-            )}
+          {/* AI Smart Product Advisor Bot */}
+          <ProductAdvisorBot
+            isOpen={isAdvisorOpen}
+            onOpen={() => setIsAdvisorOpen(true)}
+            onClose={() => setIsAdvisorOpen(false)}
+            onSelectProduct={handleSelectProduct}
+            onAddToCart={(prod) => handleAddToCart(prod, 1)}
+            currentProduct={activePage === PageType.PRODUCT_DETAIL ? selectedProduct : null}
+          />
 
-            {activePage === PageType.DEALS && (
-              <DealsPage
-                products={PRODUCTS}
-                onSelectProduct={handleSelectProduct}
-                onAddToCart={(p) => handleAddToCart(p, 1)}
-                favorites={favorites}
-                onToggleFavorite={handleToggleFavorite}
-              />
-            )}
+          {/* Global Footer */}
+          <Footer 
+            onNavigate={handleNavigate} 
+            onOpenAdminModal={() => setIsAdminModalOpen(true)}
+          />
+        </>
+      )}
 
-            {activePage === PageType.AUTHENTICITY && (
-              <AuthenticityPage />
-            )}
-
-            {activePage === PageType.TRACKING && (
-              <OrderTrackingPage />
-            )}
-
-            {activePage === PageType.BLOG && (
-              <BlogPage onSelectProduct={handleSelectProduct} />
-            )}
-
-            {activePage === PageType.WISHLIST && (
-              <WishlistPage
-                products={PRODUCTS}
-                favorites={favorites}
-                onToggleFavorite={handleToggleFavorite}
-                onSelectProduct={handleSelectProduct}
-                onAddToCart={(p) => handleAddToCart(p, 1)}
-                onNavigateShop={() => handleNavigate(PageType.SHOP)}
-              />
-            )}
-
-            {activePage === PageType.CONTACT && (
-              <ContactPage />
-            )}
-
-            {activePage === PageType.PRODUCT_DETAIL && (
-              <ProductDetailPage
-                product={selectedProduct}
-                onBack={() => handleNavigate(PageType.HOME)}
-                onAddToCart={handleAddToCart}
-                onSelectProduct={handleSelectProduct}
-                favorites={favorites}
-                onToggleFavorite={handleToggleFavorite}
-                onOpenAdvisor={() => setIsAdvisorOpen(true)}
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </main>
-
-      {/* Cart Drawer */}
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        cartItems={cartItems}
-        onUpdateQuantity={handleUpdateQuantity}
-        onRemoveItem={handleRemoveItem}
-        onClearCart={handleClearCart}
-        onProceedCheckout={() => {
-          setIsCartOpen(false);
-          setIsCheckoutOpen(true);
+      {/* Admin Login Modal */}
+      <AdminLoginModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        onLoginSuccess={() => {
+          setIsAdminLogged(true);
+          setIsAdminModalOpen(false);
+          handleNavigate(PageType.ADMIN);
+          showToast('ورود مدیر با موفقیت انجام شد');
         }}
       />
-
-      {/* Multi-Step Checkout Modal */}
-      <CheckoutModal
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        cartItems={cartItems}
-        cartTotal={cartTotal}
-        onOrderCompleted={(orderId) => {
-          handleClearCart();
-          showToast(`سفارش شماره ${orderId} با موفقیت ثبت شد.`);
-        }}
-        onNavigateTracking={(orderId) => {
-          setIsCheckoutOpen(false);
-          handleNavigate(PageType.TRACKING);
-        }}
-      />
-
-      {/* Back to top floating button */}
-      <AnimatePresence>
-        {showScrollTop && !isAdvisorOpen && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.7, y: 15 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.7, y: 15 }}
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.92 }}
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="fixed bottom-22 left-6 z-30 w-12 h-12 rounded-2xl bg-white/95 hover:bg-slate-100 text-slate-800 border border-slate-200 flex items-center justify-center shadow-xl transition-colors cursor-pointer"
-            title="رفتن به بالای صفحه"
-          >
-            <ArrowUp className="w-5 h-5" />
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      {/* AI Smart Product Advisor Bot */}
-      <ProductAdvisorBot
-        isOpen={isAdvisorOpen}
-        onOpen={() => setIsAdvisorOpen(true)}
-        onClose={() => setIsAdvisorOpen(false)}
-        onSelectProduct={handleSelectProduct}
-        onAddToCart={(prod) => handleAddToCart(prod, 1)}
-        currentProduct={activePage === PageType.PRODUCT_DETAIL ? selectedProduct : null}
-      />
-
-      {/* Global Footer */}
-      <Footer onNavigate={handleNavigate} />
 
     </div>
   );

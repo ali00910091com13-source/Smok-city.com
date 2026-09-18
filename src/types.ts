@@ -66,6 +66,7 @@ export enum PageType {
   WISHLIST = 'wishlist',
   CONTACT = 'contact',
   CHECKOUT = 'checkout',
+  ADMIN = 'admin',
 }
 
 export interface Article {
@@ -94,7 +95,7 @@ export interface TrackingOrder {
   customerName: string;
   phone: string;
   date: string;
-  status: 'processing' | 'shipped' | 'delivered';
+  status: 'pending' | 'processing' | 'packaging' | 'shipped' | 'delivered' | 'cancelled';
   statusText: string;
   courier: string;
   courierPhone: string;
@@ -107,6 +108,27 @@ export interface TrackingOrder {
     price: number;
   }[];
   steps: TrackingStep[];
+  notes?: string;
+}
+
+export interface FlashSaleConfig {
+  enabled: boolean;
+  title: string;
+  subtitle: string;
+  badgeText: string;
+  hoursLeft: number;
+  minutesLeft: number;
+  featuredProductIds?: string[];
+}
+
+export interface CouponItem {
+  code: string;
+  title: string;
+  desc: string;
+  minOrder: string;
+  discountType: 'percent' | 'fixed' | 'free_shipping';
+  discountValue: number;
+  active: boolean;
 }
 
 export interface AuthenticityResult {

@@ -10,7 +10,7 @@ import {
   Eye,
   Check
 } from 'lucide-react';
-import { Product } from '../types';
+import { Product, FlashSaleConfig } from '../types';
 import { formatPrice } from '../data/products';
 
 interface FlashSaleProps {
@@ -20,6 +20,7 @@ interface FlashSaleProps {
   favorites: string[];
   onToggleFavorite: (id: string) => void;
   onViewAllDeals?: () => void;
+  flashConfig?: FlashSaleConfig;
 }
 
 export const FlashSale: React.FC<FlashSaleProps> = ({
@@ -28,15 +29,31 @@ export const FlashSale: React.FC<FlashSaleProps> = ({
   onAddToCart,
   favorites,
   onToggleFavorite,
-  onViewAllDeals
+  onViewAllDeals,
+  flashConfig
 }) => {
+  // If explicitly disabled by admin, don't show the flash sale section
+  if (flashConfig && !flashConfig.enabled) {
+    return null;
+  }
+
   // Live countdown timer state
   const [timeLeft, setTimeLeft] = useState({
-    hours: 7,
-    minutes: 42,
+    hours: flashConfig?.hoursLeft ?? 7,
+    minutes: flashConfig?.minutesLeft ?? 42,
     seconds: 19
   });
   const [addedMap, setAddedMap] = useState<{ [id: string]: boolean }>({});
+
+  useEffect(() => {
+    if (flashConfig) {
+      setTimeLeft(prev => ({
+        ...prev,
+        hours: flashConfig.hoursLeft,
+        minutes: flashConfig.minutesLeft
+      }));
+    }
+  }, [flashConfig?.hoursLeft, flashConfig?.minutesLeft]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -63,6 +80,12 @@ export const FlashSale: React.FC<FlashSaleProps> = ({
     }, 1500);
   };
 
+  // Filter deal products (prefer products with discount)
+  const discountedProducts = products.filter(p => p.discountPercent > 0);
+  const displayProducts = discountedProducts.length >= 4 
+    ? discountedProducts.slice(0, 4) 
+    : products.slice(0, 4);
+
   return (
     <section id="flash-sale-section" className="py-12 bg-slate-50/80 border-b border-slate-200/90 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -84,14 +107,18 @@ export const FlashSale: React.FC<FlashSaleProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900">حراج شگفت‌انگیز و تخفیف‌های امروز</h2>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+                  {flashConfig?.title || 'حراج شگفت‌انگیز و تخفیف‌های امروز'}
+                </h2>
                 <span 
                   className="text-[11px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full shadow-sm"
                 >
-                  تعداد محدود
+                  {flashConfig?.badgeText || 'تعداد محدود'}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">تخفیف‌های استثنایی با انقضای محدود تا پایان امشب</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {flashConfig?.subtitle || 'تخفیف‌های استثنایی با انقضای محدود تا پایان امشب'}
+              </p>
             </div>
           </div>
 
@@ -138,7 +165,7 @@ export const FlashSale: React.FC<FlashSaleProps> = ({
 
         {/* 4 Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {products.slice(0, 4).map((product, idx) => {
+          {displayProducts.map((product, idx) => {
             const isFav = favorites.includes(product.id);
             const isAdded = addedMap[product.id];
             const soldPercent = Math.min(92, Math.round((product.salesCount / (product.salesCount + product.stockCount)) * 100));
