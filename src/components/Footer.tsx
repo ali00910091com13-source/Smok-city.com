@@ -13,6 +13,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { PageType } from '../types';
+import { SmokeCityLogo } from './SmokeCityLogo';
 
 interface FooterProps {
   onNavigate?: (page: PageType) => void;
@@ -81,12 +82,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           
           {/* Col 1: About */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-amber-500 flex items-center justify-center text-slate-950 shadow-md">
-                <Flame className="w-5 h-5 fill-slate-950" />
-              </div>
-              <span className="text-lg font-black text-slate-900">اسموک سیتی</span>
-            </div>
+            <SmokeCityLogo size="sm" />
             <p className="text-xs text-slate-500 leading-relaxed text-justify font-normal">
               اسموک سیتی معتبرترین مرجع تخصصی خرید آنلاین پاد سیستم، ویپ حرفه‌ای، سالت نیکوتین و کارتریج‌های روز با ضمانت ۱۰۰٪ اصالت فیزیکی و ۷ روز گارانتی سلامت کالا در ایران است.
             </p>

@@ -77,26 +77,19 @@ export const FlashSale: React.FC<FlashSaleProps> = ({
         >
           
           <div className="flex items-center gap-3.5 text-right">
-            <motion.div 
-              animate={{ 
-                scale: [1, 1.08, 1],
-                rotate: [0, -3, 3, 0]
-              }}
-              transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+            <div 
               className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-rose-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-rose-500/30"
             >
               <Flame className="w-7 h-7 fill-white stroke-none" />
-            </motion.div>
+            </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900">حراج شگفت‌انگیز و تخفیف‌های امروز</h2>
-                <motion.span 
-                  animate={{ scale: [1, 1.06, 1] }}
-                  transition={{ repeat: Infinity, duration: 1.5 }}
+                <span 
                   className="text-[11px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full shadow-sm"
                 >
                   تعداد محدود
-                </motion.span>
+                </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">تخفیف‌های استثنایی با انقضای محدود تا پایان امشب</p>
             </div>

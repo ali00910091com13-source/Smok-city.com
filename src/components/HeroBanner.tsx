@@ -30,22 +30,12 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   return (
     <div className="relative overflow-hidden bg-gradient-to-b from-slate-100/80 via-white to-slate-50 border-b border-slate-200/90 pt-8 pb-12">
       
-      {/* Background ambient lighting with pulse animations */}
-      <motion.div 
-        animate={{ 
-          scale: [1, 1.15, 1],
-          opacity: [0.35, 0.55, 0.35]
-        }}
-        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-0 right-1/4 w-96 h-96 bg-amber-400/15 rounded-full blur-3xl pointer-events-none" 
+      {/* Background ambient lighting - static hardware-accelerated gradients for smooth 120fps scrolling */}
+      <div 
+        className="absolute top-0 right-1/4 w-96 h-96 bg-amber-400/10 rounded-full blur-3xl pointer-events-none transform-gpu" 
       />
-      <motion.div 
-        animate={{ 
-          scale: [1.1, 0.95, 1.1],
-          opacity: [0.3, 0.5, 0.3]
-        }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        className="absolute top-1/3 left-10 w-96 h-96 bg-orange-400/15 rounded-full blur-3xl pointer-events-none" 
+      <div 
+        className="absolute top-1/3 left-10 w-96 h-96 bg-orange-400/10 rounded-full blur-3xl pointer-events-none transform-gpu" 
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -206,45 +196,33 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               className="relative w-full max-w-md aspect-square rounded-3xl bg-gradient-to-tr from-amber-100/60 via-white to-orange-100/60 p-4 border border-slate-200/90 shadow-xl flex items-center justify-center group overflow-hidden"
             >
               
-              {/* Product Hero Image with Continuous Floating Animation */}
-              <motion.img
+              {/* Product Hero Image with Optimized Hardware Acceleration */}
+              <img
                 src={HERO_IMAGE}
                 alt="پاد سیستم و ویپ اورجینال"
                 referrerPolicy="no-referrer"
-                animate={{ 
-                  y: [0, -12, 0],
-                  rotate: [0, 1.2, 0, -1.2, 0]
-                }}
-                transition={{
-                  duration: 5,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                className="w-full h-full object-contain p-2 drop-shadow-2xl"
+                loading="eager"
+                className="w-full h-full object-contain p-2 drop-shadow-2xl transition-transform duration-300 group-hover:scale-105"
               />
 
               {/* Floating Tag */}
-              <motion.div 
-                animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                className="absolute top-4 right-4 bg-white/95 backdrop-blur-md border border-slate-200 px-3.5 py-2 rounded-2xl shadow-lg flex items-center gap-2.5 text-right"
+              <div 
+                className="absolute top-4 right-4 bg-white border border-slate-200 px-3.5 py-2 rounded-2xl shadow-lg flex items-center gap-2.5 text-right"
               >
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                 <div>
                   <div className="text-[10px] text-slate-400 font-bold">پیشنهاد منتخب هفته</div>
                   <div className="text-xs font-black text-slate-900">اکسوا ایکس پرو ۳۰ وات</div>
                 </div>
-              </motion.div>
+              </div>
 
               {/* Floating Discount Tag */}
-              <motion.div 
-                animate={{ y: [0, 5, 0], scale: [1, 1.04, 1] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              <div 
                 className="absolute bottom-4 left-4 bg-rose-500 text-white px-3.5 py-1.5 rounded-2xl shadow-lg text-xs font-black flex items-center gap-1.5"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>۱۸٪ تخفیف ویژه بهاره</span>
-              </motion.div>
+              </div>
 
             </motion.div>
 

@@ -88,7 +88,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-950/65"
             onClick={onClose}
           />
 
@@ -97,8 +97,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              className="w-screen max-w-md bg-white border-r border-slate-200 flex flex-col shadow-2xl text-slate-900 text-right"
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              style={{ willChange: 'transform' }}
+              className="w-screen max-w-md bg-white border-r border-slate-200 flex flex-col shadow-2xl text-slate-900 text-right transform-gpu"
             >
               
               {/* Header */}

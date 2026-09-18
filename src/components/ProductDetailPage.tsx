@@ -26,7 +26,8 @@ import {
   Send,
   RotateCw,
   Maximize2,
-  Camera
+  Camera,
+  Bot
 } from 'lucide-react';
 import { Product } from '../types';
 import { PRODUCTS, formatPrice } from '../data/products';
@@ -39,6 +40,7 @@ interface ProductDetailPageProps {
   onSelectProduct: (p: Product) => void;
   favorites: string[];
   onToggleFavorite: (id: string) => void;
+  onOpenAdvisor?: () => void;
 }
 
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
@@ -47,7 +49,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   onAddToCart,
   onSelectProduct,
   favorites,
-  onToggleFavorite
+  onToggleFavorite,
+  onOpenAdvisor
 }) => {
   // Gallery active image
   const gallery = product.galleryImages && product.galleryImages.length > 0 
@@ -614,6 +617,18 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
             </div>
 
+            {/* Smart Advisor Direct Consultation CTA */}
+            {onOpenAdvisor && (
+              <button
+                type="button"
+                onClick={onOpenAdvisor}
+                className="w-full py-3 px-4 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/90 text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+              >
+                <Bot className="w-4 h-4 text-amber-600" />
+                <span>نیاز به راهنمایی دارید؟ مشاوره با دستیار هوشمند درباره {product.name}</span>
+              </button>
+            )}
+
           </div>
 
         </div>
@@ -850,17 +865,18 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
               onClick={() => setIs3DModalOpen(false)}
-              className="fixed inset-0 bg-slate-950/90 backdrop-blur-md"
+              className="fixed inset-0 bg-slate-950/95"
             />
 
             {/* Modal Dialog Card */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-5xl h-[90vh] bg-slate-950 rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative z-10 flex flex-col"
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              className="w-full max-w-5xl h-[90vh] bg-slate-950 rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative z-10 flex flex-col transform-gpu"
             >
               <Product3DViewer
                 product={product}

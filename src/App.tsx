@@ -16,14 +16,16 @@ import { ContactPage } from './components/ContactPage';
 import { ProductDetailPage } from './components/ProductDetailPage';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
+import { ProductAdvisorBot } from './components/ProductAdvisorBot';
 import { Footer } from './components/Footer';
 import { Product, CartItem, PageType } from './types';
 import { PRODUCTS } from './data/products';
-import { CheckCircle2, MessageCircle, ArrowUp } from 'lucide-react';
+import { CheckCircle2, ArrowUp } from 'lucide-react';
 
 export default function App() {
   const [activePage, setActivePage] = useState<PageType>(PageType.HOME);
   const [selectedProduct, setSelectedProduct] = useState<Product>(PRODUCTS[0]);
+  const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
   
   // Pre-populate with sample product to let user experience cart immediately
   const [cartItems, setCartItems] = useState<CartItem[]>([
@@ -42,12 +44,19 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
-  // Monitor scroll for back-to-top button
+  // Monitor scroll for back-to-top button with 60/120fps throttle
   useEffect(() => {
+    let ticking = false;
     const checkScroll = () => {
-      setShowScrollTop(window.scrollY > 350);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setShowScrollTop(window.scrollY > 350);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    window.addEventListener('scroll', checkScroll);
+    window.addEventListener('scroll', checkScroll, { passive: true });
     return () => window.removeEventListener('scroll', checkScroll);
   }, []);
 
@@ -174,6 +183,7 @@ export default function App() {
         onSelectProduct={handleSelectProduct}
         favoritesCount={favorites.length}
         onOpenWishlist={() => handleNavigate(PageType.WISHLIST)}
+        onOpenAdvisor={() => setIsAdvisorOpen(true)}
         onSelectCategory={(cat) => {
           setSelectedCategory(cat);
           handleNavigate(PageType.SHOP);
@@ -283,6 +293,7 @@ export default function App() {
                 onSelectProduct={handleSelectProduct}
                 favorites={favorites}
                 onToggleFavorite={handleToggleFavorite}
+                onOpenAdvisor={() => setIsAdvisorOpen(true)}
               />
             )}
           </motion.div>
@@ -319,38 +330,33 @@ export default function App() {
         }}
       />
 
-      {/* Floating Action Buttons */}
-      <div className="fixed bottom-6 left-6 z-30 flex flex-col gap-3">
-        
-        {/* Support consultation button */}
-        <motion.button
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          whileTap={{ scale: 0.92 }}
-          onClick={() => alert('مشاوران پشتیبانی آنلاین اسموک سیتی همه روزه از ۹ الی ۲۱ آماده راهنمایی شما هستند: 021-88223344 یا پشتیبانی واتس‌اپ: 09120000000')}
-          className="w-12 h-12 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center shadow-xl shadow-emerald-500/30 transition-colors"
-          title="مشاوره رایگان خرید"
-        >
-          <MessageCircle className="w-6 h-6 stroke-[2.2]" />
-        </motion.button>
+      {/* Back to top floating button */}
+      <AnimatePresence>
+        {showScrollTop && !isAdvisorOpen && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.7, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.7, y: 15 }}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-22 left-6 z-30 w-12 h-12 rounded-2xl bg-white/95 hover:bg-slate-100 text-slate-800 border border-slate-200 flex items-center justify-center shadow-xl transition-colors cursor-pointer"
+            title="رفتن به بالای صفحه"
+          >
+            <ArrowUp className="w-5 h-5" />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
-        {/* Back to top */}
-        <AnimatePresence>
-          {showScrollTop && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.7, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.7, y: 15 }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.92 }}
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="w-12 h-12 rounded-2xl bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 flex items-center justify-center shadow-xl transition-colors"
-              title="رفتن به بالای صفحه"
-            >
-              <ArrowUp className="w-5 h-5" />
-            </motion.button>
-          )}
-        </AnimatePresence>
-      </div>
+      {/* AI Smart Product Advisor Bot */}
+      <ProductAdvisorBot
+        isOpen={isAdvisorOpen}
+        onOpen={() => setIsAdvisorOpen(true)}
+        onClose={() => setIsAdvisorOpen(false)}
+        onSelectProduct={handleSelectProduct}
+        onAddToCart={(prod) => handleAddToCart(prod, 1)}
+        currentProduct={activePage === PageType.PRODUCT_DETAIL ? selectedProduct : null}
+      />
 
       {/* Global Footer */}
       <Footer onNavigate={handleNavigate} />
