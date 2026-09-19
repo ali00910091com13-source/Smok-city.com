@@ -19,7 +19,7 @@ import { CheckoutModal } from './components/CheckoutModal';
 import { ProductAdvisorBot } from './components/ProductAdvisorBot';
 import { Footer } from './components/Footer';
 import { AdminPanel } from './components/AdminPanel';
-import { AdminLoginModal } from './components/AdminLoginModal';
+import { AdminLoginPage } from './components/AdminLoginPage';
 import { Product, CartItem, PageType, Article, TrackingOrder, FlashSaleConfig, CouponItem } from './types';
 import { PRODUCTS } from './data/products';
 import { CheckCircle2, ArrowUp, Shield } from 'lucide-react';
@@ -43,7 +43,6 @@ export default function App() {
   const [flashConfig, setFlashConfig] = useState<FlashSaleConfig>(getStoredFlashSaleConfig);
   const [coupons, setCoupons] = useState<CouponItem[]>(getStoredCoupons);
 
-  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isAdminLogged, setIsAdminLogged] = useState(isAdminLoggedIn);
 
   const [selectedProduct, setSelectedProduct] = useState<Product>(() => products[0] || PRODUCTS[0]);
@@ -66,21 +65,48 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
-  // Secret keyboard shortcut (Alt+A) and hash (#admin) trigger for Admin access
+  // Secret URL address detection (#admin, #panel, /admin, ?admin) and shortcut (Alt+A)
   useEffect(() => {
+    const checkSecretAdminUrl = () => {
+      const hash = (window.location.hash || '').toLowerCase();
+      const pathname = (window.location.pathname || '').toLowerCase();
+      const search = (window.location.search || '').toLowerCase();
+      if (
+        hash === '#admin' ||
+        hash === '#secret-admin' ||
+        hash === '#panel' ||
+        hash === '#secret' ||
+        hash === '#admin-panel' ||
+        hash === '#smokecity-admin' ||
+        pathname === '/admin' ||
+        pathname.endsWith('/admin') ||
+        pathname === '/panel' ||
+        search.includes('admin')
+      ) {
+        setActivePage(PageType.ADMIN);
+      }
+    };
+
+    // Check on initial load
+    checkSecretAdminUrl();
+
+    // Listen for hash changes whenever URL changes in the browser address bar
+    window.addEventListener('hashchange', checkSecretAdminUrl);
+
+    // Covert keyboard shortcut (Alt+A)
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.altKey && (e.key === 'a' || e.key === 'A' || e.key === 'ش' || e.key === 'م')) {
         e.preventDefault();
-        setIsAdminModalOpen(true);
+        window.location.hash = 'admin';
+        setActivePage(PageType.ADMIN);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
 
-    if (window.location.hash === '#admin') {
-      setIsAdminModalOpen(true);
-    }
-
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('hashchange', checkSecretAdminUrl);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   // Monitor scroll for back-to-top button with 60/120fps throttle
@@ -212,71 +238,65 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Main Global Header */}
-      <Header
-        activePage={activePage}
-        onNavigate={handleNavigate}
-        cartCount={cartCount}
-        cartTotal={cartTotal}
-        onOpenCart={() => setIsCartOpen(true)}
-        onSelectProduct={handleSelectProduct}
-        favoritesCount={favorites.length}
-        onOpenWishlist={() => handleNavigate(PageType.WISHLIST)}
-        onOpenAdvisor={() => setIsAdvisorOpen(true)}
-        onSelectCategory={(cat) => {
-          setSelectedCategory(cat);
-          handleNavigate(PageType.SHOP);
-        }}
-      />
-
-      {/* Quick Admin floating badge when logged in */}
-      {isAdminLogged && activePage !== PageType.ADMIN && (
-        <motion.button
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => handleNavigate(PageType.ADMIN)}
-          className="fixed top-3 left-4 z-50 bg-slate-900/90 backdrop-blur-md text-amber-400 hover:text-white border border-amber-500/40 text-xs px-3.5 py-1.5 rounded-full shadow-xl flex items-center gap-1.5 cursor-pointer font-black"
-          title="ورود به پنل مدیریت"
-        >
-          <Shield className="w-3.5 h-3.5 text-amber-400" />
-          <span>پنل مدیریت</span>
-        </motion.button>
-      )}
-
       {/* Main Dynamic Viewport */}
       {activePage === PageType.ADMIN ? (
-        <AdminPanel
-          products={products}
-          onUpdateProducts={(newProducts) => {
-            setProducts(newProducts);
-            showToast('محصولات با موفقیت به‌روزرسانی شدند');
-          }}
-          articles={articles}
-          onUpdateArticles={(newArticles) => {
-            setArticles(newArticles);
-            showToast('مقالات با موفقیت به‌روزرسانی شدند');
-          }}
-          orders={orders}
-          onUpdateOrders={(newOrders) => {
-            setOrders(newOrders);
-            showToast('سفارش‌ها با موفقیت به‌روزرسانی شدند');
-          }}
-          flashConfig={flashConfig}
-          onUpdateFlashConfig={(newConfig) => {
-            setFlashConfig(newConfig);
-            showToast('تنظیمات حراج شگفت‌انگیز ذخیره شد');
-          }}
-          coupons={coupons}
-          onUpdateCoupons={(newCoupons) => {
-            setCoupons(newCoupons);
-            showToast('کدهای تخفیف با موفقیت ذخیره شدند');
-          }}
-          onBackToStore={() => handleNavigate(PageType.HOME)}
-        />
+        !isAdminLogged ? (
+          <AdminLoginPage
+            onLoginSuccess={() => {
+              setIsAdminLogged(true);
+              showToast('احراز هویت موفق: به پنل مدیریت خوش آمدید');
+            }}
+            onBackToStore={() => {
+              window.location.hash = '';
+              handleNavigate(PageType.HOME);
+            }}
+          />
+        ) : (
+          <AdminPanel
+            products={products}
+            setProducts={setProducts}
+            articles={articles}
+            setArticles={setArticles}
+            orders={orders}
+            setOrders={setOrders}
+            flashConfig={flashConfig}
+            setFlashConfig={setFlashConfig}
+            coupons={coupons}
+            setCoupons={setCoupons}
+            onExitAdmin={() => {
+              setIsAdminLogged(false);
+              window.location.hash = '';
+              handleNavigate(PageType.HOME);
+              showToast('از حساب مدیریت خارج شدید');
+            }}
+            onNavigatePage={(page) => {
+              if (page === PageType.HOME) {
+                window.location.hash = '';
+              }
+              handleNavigate(page);
+            }}
+            onSelectProductForView={handleSelectProduct}
+          />
+        )
       ) : (
         <>
+          {/* Main Global Header */}
+          <Header
+            activePage={activePage}
+            onNavigate={handleNavigate}
+            cartCount={cartCount}
+            cartTotal={cartTotal}
+            onOpenCart={() => setIsCartOpen(true)}
+            onSelectProduct={handleSelectProduct}
+            favoritesCount={favorites.length}
+            onOpenWishlist={() => handleNavigate(PageType.WISHLIST)}
+            onOpenAdvisor={() => setIsAdvisorOpen(true)}
+            onSelectCategory={(cat) => {
+              setSelectedCategory(cat);
+              handleNavigate(PageType.SHOP);
+            }}
+          />
+
           <main className="flex-1 overflow-x-hidden">
             <AnimatePresence mode="wait">
               <motion.div
@@ -460,23 +480,9 @@ export default function App() {
           {/* Global Footer */}
           <Footer 
             onNavigate={handleNavigate} 
-            onOpenAdminModal={() => setIsAdminModalOpen(true)}
           />
         </>
       )}
-
-      {/* Admin Login Modal */}
-      <AdminLoginModal
-        isOpen={isAdminModalOpen}
-        onClose={() => setIsAdminModalOpen(false)}
-        onLoginSuccess={() => {
-          setIsAdminLogged(true);
-          setIsAdminModalOpen(false);
-          handleNavigate(PageType.ADMIN);
-          showToast('ورود مدیر با موفقیت انجام شد');
-        }}
-      />
-
     </div>
   );
 }
